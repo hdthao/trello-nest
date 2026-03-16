@@ -1,28 +1,37 @@
 import { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Github } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
-import { register } from '../api/user';
+import { Button } from '../UI/Button';
+import { register } from '../../api/user';
 
-export default function Login() {
+export default function SignUp() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState([] as string[]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError([]);
+    setIsLoading(true);
     try {
       await register({ email, password });
       navigate('/login');
-    } catch (error) {
-      console.error(error);
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || ['An error occurred during registration'];
+      setError(Array.isArray(errorMessage) ? errorMessage : [errorMessage]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 bg-[#f8f9fa]">
       <motion.div
+        key="signup-form"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
@@ -46,6 +55,28 @@ export default function Login() {
 
           {/* Form */}
           <form className="space-y-5" onSubmit={handleSubmit}>
+            {/* Error Message */}
+            <AnimatePresence mode="wait">
+              {error.length > 0 && (
+                <motion.div
+                  key="error-message"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden"
+                >
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
+                    <ul className="text-sm text-red-600 font-medium list-disc list-inside">
+                      {error.map((e, i) => (
+                        <li className='text-left first-letter:uppercase' key={i}>{e}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <div>
               <label className="block text-[14px] font-semibold text-[#1a1a1a] mb-2 text-left">
                 Email Address
@@ -55,7 +86,7 @@ export default function Login() {
                   <Mail className="h-5 w-5 text-gray-400 group-focus-within:text-[#f25c19] transition-colors" />
                 </div>
                 <input
-                  type="email"
+                  type="text"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="block w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-[15px] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f25c19]/10 focus:border-[#f25c19] transition-all"
@@ -95,19 +126,15 @@ export default function Login() {
               <input
                 id="terms"
                 type="checkbox"
-                className="h-4 w-4 text-[#f25c19] focus:ring-[#f25c19] border-gray-300 rounded cursor-pointer mt-[2px]"
+                className="w-4 h-4 accent-[#f25c19] border-gray-300 rounded cursor-pointer mt-[2px]"
               />
-              <label className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed" htmlFor="terms">
+              <label className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed ml-2" htmlFor="terms">
                 By creating an account, I agree to Kanflow's <a className="text-primary hover:underline font-medium" href="#">Terms of Service</a> and <a className="text-primary hover:underline font-medium" href="#">Privacy Policy</a>.
               </label>
             </div>
-
-            <button
-              type="submit"
-              className="w-full flex items-center justify-center gap-2 bg-[#f25c19] text-white py-3.5 px-4 rounded-xl font-bold text-[16px] hover:bg-[#d94e12] active:scale-[0.98] transition-all shadow-lg shadow-orange-500/20"
-            >
-              Sign Up <ArrowRight className="h-5 w-5" />
-            </button>
+            <Button type="submit" disabled={isLoading}>
+             Sign Up <ArrowRight className="h-5 w-5" />
+            </Button>
           </form>
 
           {/* Separator */}

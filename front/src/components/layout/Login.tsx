@@ -1,18 +1,32 @@
 import { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Github } from 'lucide-react';
-import { motion } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '../UI/Button';
+import { login } from '../../api/user';
 
 export default function Login() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState([] as string[]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // For now simply redirect to dashboard
-    navigate('/dashboard');
+    setError([]);
+    setIsLoading(true);
+    try {
+      await login({ email, password });
+      navigate('/dashboard');
+    } catch (error: any) {
+      const errMessage = error.response?.data?.message;
+      setError(Array.isArray(errMessage) ? errMessage : [errMessage || 'An error occurred during login']);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -41,6 +55,26 @@ export default function Login() {
 
           {/* Form */}
           <form className="space-y-5" onSubmit={handleLogin}>
+            <AnimatePresence mode="wait">
+              {error.length > 0 && (
+                <motion.div
+                  key="error-message"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden"
+                >
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
+                    <ul className="text-sm text-red-600 font-medium list-disc list-inside">
+                      {error.map((e, i) => (
+                        <li className='text-left first-letter:uppercase' key={i}>{e}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
             <div>
               <label className="block text-[14px] font-semibold text-[#1a1a1a] mb-2 text-left">
                 Email Address
@@ -50,7 +84,7 @@ export default function Login() {
                   <Mail className="h-5 w-5 text-gray-400 group-focus-within:text-[#f25c19] transition-colors" />
                 </div>
                 <input
-                  type="email"
+                  type="text"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="block w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-[15px] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f25c19]/10 focus:border-[#f25c19] transition-all"
@@ -99,13 +133,9 @@ export default function Login() {
                 Remember me for 30 days
               </label>
             </div>
-
-            <button
-              type="submit"
-              className="w-full flex items-center justify-center gap-2 bg-[#f25c19] text-white py-3.5 px-4 rounded-xl font-bold text-[16px] hover:bg-[#d94e12] active:scale-[0.98] transition-all shadow-lg shadow-orange-500/20"
-            >
+            <Button type="submit" disabled={isLoading}>
               Log In <ArrowRight className="h-5 w-5" />
-            </button>
+            </Button>
           </form>
 
           {/* Separator */}
